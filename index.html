@@ -119,6 +119,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sky-edge);outli
           <li>Find the mistake in the falling sentence.</li>
           <li>Shoot the wrong word. If you hit a right word, you wait a second before the next shot.</li>
           <li>Fix it. If your fix is wrong, the correct word freezes into ice ❄️ and stays in your way.</li>
+          <li>5 correct answers in a row? A power stone 💎 flies in. Hit it to get more balls!</li>
         </ol>
         <div class="setting">Answers
           <div class="seg" id="modeSeg">
@@ -215,7 +216,7 @@ She tries volleyball [whit = with ; wiht / wit] Elisa's team.   # Spelling
 // Nuovi errori
 We went to Rovigo to pick up my uncle [an = and ; a / am] aunt.   # Spelling
 This book [help = helps / helped / has helped ; helping / helpes] me in many ways.   # Verbs
-I [recco mend = recommend ; reccomend / recomend] this book to teenagers.   # Spelling
+I [reccomend = recommend ; reccomend / recomend] this book to teenagers.   # Spelling
 She also [talk = talks / talked ; talkes / talking] about friendship and love.   # Verbs
 [Me and Soffia = Soffia and I ; I and Soffia / Soffia and me] were playing together.   # Pronouns
 The protagonists [four girls = are four girls ; is four girls / have four girls].   # Verb be
@@ -228,6 +229,37 @@ He has the task to go to a [hunted = haunted ; hanted / hunting] house.   # Spel
 The ghost [it's = is ; its / are] furious.   # Verb be
 He doesn't want [persons = people / anyone / anybody ; peoples / persones] in his house.   # Vocabulary
 The moment Geronimo [entered at = entered / went into / walked into ; entered in / entered to] the house, the ghost scared him.   # Prepositions
+
+// Terzo gruppo
+He [try = tries / tried ; trys / trying] really hard to win the match.   # Verbs
+He tries every [mode = way ; mood / mod] to scare him.   # Vocabulary
+It's very dangerous [stay = to stay ; stays / stayed] at the beach during a tornado.   # Infinitive
+We went [at the hotel = to the hotel ; in the hotel / at hotel].   # Prepositions
+The [character is = characters are ; character are / characters is] Giacomino, Chiara and the fox.   # Plurals
+Last summer I [go = went ; goed / gone] to Rimini.   # Past simple
+I [see = saw ; seed / seen] some little fish and crabs, it was so much fun!   # Past simple
+That happened [at = in ; on / to] July and August.   # Prepositions
+In July I went [the = to ; at / in] Alessandria.   # Prepositions
+They want to travel [the America = to America / across America / around America ; at America / to the America].   # Articles
+I really [enjoy = enjoyed ; enjoied / enjoying] my vacation! I'm sad it's over!   # Past simple
+[Me and my family = My family and I ; I and my family / My family and me] visited Zurich shopping malls.   # Pronouns
+[For = To / In order to ; For to / So] leave the mask, she had to scare it.   # Infinitive
+He had another [mask scarier = scarier mask ; more scary mask / mask more scarier].   # Adjectives
+Her brother found the hat and [dressed = wore ; weared / dressed up] it.   # Vocabulary
+The film [talk = talks ; talking / talkes] about 2 guys.   # Verbs
+[Their name is = Their names are ; Their name are / Theirs names are] Ahmed and Hassan.   # Plurals
+My little brother needed to go to school [all the month = the whole month ; the all month / all month] of June.   # Vocabulary
+My dad [decide = decided ; decides / deciding] to stay in Italy and not go in July.   # Past simple
+I [realy = really ; rially / reely] liked this book because it captures you from beginning to end.   # Spelling
+I learned so much [nature = about nature ; of nature / on nature]!   # Prepositions
+Last summer [i = I ; me / my] found a dead jellyfish.   # Capital I
+The character who killed [the parent's of harry = the parents of Harry / Harry's parents ; the parent of Harry / Harry parents] is the villain.   # Possessives
+Professor McGranit [learne = teaches / taught ; learns / learned] the magic to Harry.   # Vocabulary
+[In this summer = This summer / Last summer ; On this summer / At this summer] I saw my cousins and uncle.   # Prepositions
+Last summer I went [in = to ; at / on] Morocco.   # Prepositions
+When I [returning = returned / was returning ; returnning / returns] to Italy, I went to the beach.   # Verbs
+[Un = One ; An / Uno] day Nick puts glue on the teacher's chair.   # Spelling
+She [want = wants ; wantes / wanting] to find Tefiti's heart and save the ocean.   # Verbs
 `;
 
 /* ===================== da qui in giù il motore del gioco ===================== */
@@ -286,7 +318,7 @@ function loadP(){
 let P = loadP();
 function saveP(){ try { localStorage.setItem(STORE, JSON.stringify(P)); } catch(e){} }
 function stat(id){ return P.items[id] || (P.items[id] = { box:1, last:-99 }); }
-function markRight(id){ const s = stat(id); s.box = Math.min(5, s.box+1); s.last = P.round; saveP(); }
+function markRight(id){ const s = stat(id); s.box = Math.min(5, s.box+1); s.last = P.round; s.done = true; saveP(); }
 function markWrong(id){ const s = stat(id); s.box = 1; s.last = P.round; saveP(); }
 
 function shuffle(a){ for (let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]] = [a[j],a[i]]; } return a; }
@@ -301,8 +333,8 @@ function wsample(arr, n){
   return out;
 }
 function pickRound(){
-  const n = Math.min(ROUND_SIZE, ITEMS.length);
-  const all = ITEMS.map(it => ({ it, st: stat(it.id) }));
+  const all = ITEMS.filter(it => !stat(it.id).done).map(it => ({ it, st: stat(it.id) }));
+  const n = Math.min(ROUND_SIZE, all.length);
   const due = all.filter(x => P.round - x.st.last >= INTERVAL[x.st.box]);
   const later = all.filter(x => !due.includes(x));
   const chosen = wsample(due, n);
@@ -376,6 +408,7 @@ function sfx(k){
       case 'good': [523,659,784,1046].forEach((f,i)=>tone(f,.13,'square',.045,i*.07)); break;
       case 'bad': tone(900,.5,'sine',.06,0,-600); tone(1350,.3,'sine',.03,.05,-700); break;
       case 'lose': tone(300,.45,'sawtooth',.05,0,-220); break;
+      case 'bump': tone(260,.08,'triangle',.08,0,120); break;
       case 'launch': tone(420,.09,'square',.035,0,260); break;
     }
   } catch(e){}
@@ -397,7 +430,7 @@ function computeSizes(){
   paddle.w = clamp(W*0.17, 84, 230); paddle.h = clamp(FS*0.6, 11, 18);
   paddle.y = H - paddle.h - clamp(H*0.045, 14, 36);
   ball.r = clamp(FS*0.36, 6, 12);
-  SPEED = clamp(H*0.95, 360, 820);
+  SPEED = clamp(H*0.95, 360, 820) * Math.min(1.3, 1 + 0.05*(roundNo - 1));
   DANGER = paddle.y - ball.r*5;
 }
 function blockWidth(text){ ctx.font = font(); return Math.max(FS*1.9, ctx.measureText(text).width + PAD*2); }
@@ -454,24 +487,68 @@ function makeBlocks(item, idx=-1, repl=''){
 function spawn(){
   const item = queue.shift();
   if (!item){ endRound(); return; }
+  spawnedInRound++;
+  if (roundNo >= 2){
+    sinceChange++;
+    if (sinceChange > nextChange){
+      sinceChange = 1; nextChange = 2 + (Math.random() < .5 ? 1 : 0); obsChanges++;
+      makeObstacles(obstacleTarget()); toast('⚠️ New obstacles!', 1400);
+    }
+  }
   current = { item, blocks: makeBlocks(item), y:0, h:0, state:'falling', alpha:1 };
   layout(current); current.y = -current.h - 4;
 }
-function fallSpeed(){ return (H/30) * Math.min(1.9, 1 + 0.12*(roundNo-1)); }
+function fallSpeed(){ return (H/30) * Math.min(2.4, 1 + 0.12*(roundNo-1) + 0.025*spawnedInRound); }
 
-let aim = 0, reload = 0;
+let aim = 0, reload = 0, shots = [], multi = 0, gem = null, gemPending = false, obstacles = [];
 const AIM_MAX = 1.3;
-function stickBall(delay = 0){ ball.stuck = true; ball.vx = ball.vy = 0; paddle.x = W/2; ball.x = paddle.x; ball.y = paddle.y - ball.r - 1; ball.trail = []; reload = Math.max(reload, delay); }
+function stickBall(delay = 0){ shots = []; ball.stuck = true; paddle.x = W/2; ball.x = paddle.x; ball.y = paddle.y - ball.r - 1; reload = Math.max(reload, delay); }
 function aimAt(px, py){
   const dx = px - paddle.x, dy = (paddle.y - ball.r) - py;
   if (dy < 10) return;
   aim = clamp(Math.atan2(dx, dy), -AIM_MAX, AIM_MAX);
 }
+function newShot(a, x = ball.x, y = ball.y){ return { x, y, vx: SPEED*Math.sin(a), vy: -SPEED*Math.cos(a), trail: [], t: 0 }; }
 function launch(){
   if (!ball.stuck || reload > 0 || state !== 'playing') return;
-  ball.vx = SPEED*Math.sin(aim); ball.vy = -SPEED*Math.cos(aim); ball.stuck = false; sfx('launch');
+  ball.stuck = false;
+  if (multi > 0){ multi--; [-0.22, 0, 0.22].forEach(d => shots.push(newShot(clamp(aim + d, -AIM_MAX, AIM_MAX)))); }
+  else shots.push(newShot(aim));
+  sfx('launch');
 }
-function pop(delay){ burst(ball.x, ball.y, [C.salmon, C.cream], 8); stickBall(delay); }
+function pop(sh, delay){ burst(sh.x, sh.y, [C.salmon, C.cream], 8); sh.dead = true; sh.delay = delay; }
+
+/* ostacoli: dal round 2 cambiano ogni 2-3 frasi e aumentano (max 8); dal round 3 ruotano */
+let spawnedInRound = 0, sinceChange = 0, nextChange = 3, obsChanges = 0;
+function obstacleTarget(){ return Math.min(8, roundNo - 1 + obsChanges); }
+function makeObstacles(n){
+  obstacles.forEach(o => burst(o.fx*W, o.fy*H, [C.mauve, C.cream], 8));
+  obstacles = [];
+  const top = 0.28, bottom = (DANGER - FS*3)/H, m = ball.r*2;
+  for (let i = 0, tries = 0; i < n && tries < 400; tries++){
+    const o = { fx: 0.1 + Math.random()*0.8, fy: top + Math.random()*Math.max(0.05, bottom - top),
+      k: 0.75 + Math.random()*0.6, sides: [0,3,4,3,5,0,4,3][i % 8], rot: Math.random()*Math.PI*2,
+      spin: roundNo >= 3 ? (Math.random() < .5 ? -1 : 1)*(0.4 + Math.random()*0.5*roundNo/3) : 0, flash: 0, grow: 0 };
+    const ox = o.fx*W, oy = o.fy*H, R = o.k*FS; // raggio pieno
+    if (obstacles.some(p => Math.hypot(p.fx*W - ox, p.fy*H - oy) < FS*4)) continue;
+    if (ice.some(ic => ox + R > ic.x - m && ox - R < ic.x + ic.w + m && oy + R > ic.y - m && oy - R < ic.y + ic.h + m)) continue;
+    if (Math.abs(ox - W/2) < FS*2.5 && oy > H*0.6) continue;
+    obstacles.push(o); i++;
+  }
+}
+function obstacleVerts(o){
+  const ox = o.fx*W, oy = o.fy*H, R = o.k*FS*o.grow, out = [];
+  for (let i = 0; i < o.sides; i++){ const a = o.rot + i*Math.PI*2/o.sides; out.push([ox + R*Math.cos(a), oy + R*Math.sin(a)]); }
+  return out;
+}
+
+/* pietra del potere: esce dopo 5 risposte giuste di fila */
+function spawnGem(){
+  const fromLeft = Math.random() < .5;
+  gem = { x: fromLeft ? -FS : W + FS, y: H*(0.32 + Math.random()*0.22), vx: (fromLeft ? 1 : -1)*W/7, t: 0 };
+  toast('💎 Power stone! Hit it to get more balls!', 2600);
+}
+const gemY = () => gem.y + Math.sin(gem.t*3)*FS*0.4;
 
 function updateHUD(){
   $('hearts').innerHTML = Array.from({length:5}, (_,i) => i < hearts ? '<span class="heart">♥</span>' : (i < 3 ? '<span class="heart off">♥</span>' : '')).join('');
@@ -483,14 +560,18 @@ function updateHUD(){
 
 function startGame(){
   if (!ITEMS.length){ toast('No sentences found. Check the ERRORI list.'); return; }
-  score = 0; hearts = 3; streak = 0; roundNo = 1; gameFails = [];
+  score = 0; hearts = 3; streak = 0; roundNo = 1; gameFails = []; multi = 0; gemPending = false;
   startRound();
 }
 function startRound(){
   ice = []; particles = []; floaters = []; current = null;
   queue = pickRound(); total = queue.length; done = 0; requeued.clear();
+  if (!queue.length){ allDone(); return; }
   roundFails = []; rs = { ok:0, frozen:0, missed:0 };
-  spawnTimer = 1.2; stickBall(); state = 'playing'; show(null); updateHUD();
+  spawnTimer = 1.2; gem = null; reload = 0; computeSizes(); stickBall();
+  spawnedInRound = 0; sinceChange = 0; nextChange = 2 + (Math.random() < .5 ? 1 : 0); obsChanges = 0; obstacles = [];
+  if (roundNo >= 2){ makeObstacles(obstacleTarget()); toast(`⚡ Round ${roundNo}: faster, with obstacles!`, 2200); }
+  state = 'playing'; show(null); updateHUD();
 }
 function endRound(){
   state = 'roundEnd'; P.round++; saveP();
@@ -503,10 +584,21 @@ function endRound(){
 function gameOver(){
   state = 'gameOver'; P.round++;
   const newBest = score > (P.best||0); if (newBest) P.best = score; saveP();
+  $('gameOver').querySelector('h2').textContent = 'Game over'; $('againBtn').style.display = '';
   $('goScore').textContent = score;
   $('goBest').textContent = newBest && score > 0 ? 'New best score!' : `Best score: ${P.best||0}`;
   $('goList').innerHTML = rememberList(gameFails, 'Remember these:');
   show('gameOver'); $('againBtn').focus(); sfx('lose');
+}
+function allDone(){
+  state = 'gameOver'; P.round++;
+  if (score > (P.best||0)) P.best = score; saveP();
+  $('gameOver').querySelector('h2').textContent = '🏆 All mistakes fixed!';
+  $('againBtn').style.display = 'none';
+  $('goScore').textContent = score;
+  $('goBest').textContent = `Best score: ${P.best||0}`;
+  $('goList').innerHTML = '<p class="lead">You corrected every sentence. Amazing work!</p>';
+  show('gameOver'); $('menuBtn').focus(); sfx('good');
 }
 function rememberList(list, title){
   if (!list.length) return '<p class="lead">No mistakes left behind. Great job!</p>';
@@ -553,6 +645,7 @@ function answer(value, btn){
   if (mode === 'choice') $('chBody').querySelectorAll('.opt').forEach(b => { if (matchAnswer(t, b.dataset.v)) b.classList.add('right'); });
   if (hit){
     markRight(s.item.id); streak++;
+    if (streak % 5 === 0) gemPending = true;
     const heightBonus = Math.round(100 * clamp(1 - (s.y + s.h)/DANGER, 0, 1));
     const pts = Math.round(((mode === 'type' ? 150 : 100) + heightBonus) * Math.min(2, 1 + 0.25*(streak-1)));
     score += pts; ch.pts = pts; ch.fix = hit;
@@ -575,6 +668,7 @@ function resolveRight(){
   if (first) floaters.push({ x:first.rx + first.w/2, y:s.y + first.ry, text:'+'+pts, life:1.2, color:C.lime });
   s.blocks = makeBlocks(s.item, idx, fix); layout(s);
   s.state = 'solved'; rs.ok++; done++;
+  if (gemPending){ gemPending = false; spawnGem(); }
   state = 'playing'; show(null); updateHUD();
 }
 function resolveWrong(){
@@ -610,63 +704,109 @@ function updateFx(dt){
   floaters.forEach(f => { f.y -= 50*dt; f.life -= dt; });
   floaters = floaters.filter(f => f.life > 0);
   ice.forEach(i => { if (i.flash > 0) i.flash -= dt; });
+  obstacles.forEach(o => { o.rot += o.spin*dt; if (o.flash > 0) o.flash -= dt; if (o.grow < 1) o.grow = Math.min(1, o.grow + dt*2.5); });
   if (current) current.blocks.forEach(b => { if (b.shake > 0) b.shake -= dt; });
 }
 
 /* ---------- physics ---------- */
-function normalizeBall(){
-  let sp = Math.hypot(ball.vx, ball.vy) || 1;
-  ball.vx *= SPEED/sp; ball.vy *= SPEED/sp;
-  const minVy = SPEED*0.32;
-  if (Math.abs(ball.vy) < minVy){
-    ball.vy = (ball.vy < 0 ? -1 : 1) * minVy;
-    ball.vx = Math.sign(ball.vx || 1) * Math.sqrt(SPEED*SPEED - minVy*minVy);
+function normalizeShot(sh){
+  const sp = Math.hypot(sh.vx, sh.vy) || 1;
+  sh.vx *= SPEED/sp; sh.vy *= SPEED/sp;
+  const minVy = SPEED*0.3;
+  if (Math.abs(sh.vy) < minVy){
+    sh.vy = (sh.vy < 0 ? -1 : 1) * minVy;
+    sh.vx = Math.sign(sh.vx || 1) * Math.sqrt(SPEED*SPEED - minVy*minVy);
   }
 }
-function collide(rx, ry, rw, rh){
-  const cx = clamp(ball.x, rx, rx+rw), cy = clamp(ball.y, ry, ry+rh);
-  const dx = ball.x - cx, dy = ball.y - cy, d2 = dx*dx + dy*dy;
+function reflect(sh, nx, ny){
+  const dot = sh.vx*nx + sh.vy*ny;
+  if (dot < 0){ sh.vx -= 2*dot*nx; sh.vy -= 2*dot*ny; }
+  normalizeShot(sh);
+}
+function hitRect(sh, rx, ry, rw, rh){
+  const cx = clamp(sh.x, rx, rx+rw), cy = clamp(sh.y, ry, ry+rh);
+  const dx = sh.x - cx, dy = sh.y - cy;
+  return dx*dx + dy*dy <= ball.r*ball.r;
+}
+
+function bounceRect(sh, rx, ry, rw, rh){
+  const cx = clamp(sh.x, rx, rx+rw), cy = clamp(sh.y, ry, ry+rh);
+  const dx = sh.x - cx, dy = sh.y - cy, d2 = dx*dx + dy*dy;
   if (d2 > ball.r*ball.r) return false;
-  if (d2 === 0){ ball.vy = -ball.vy; ball.y = ball.vy < 0 ? ry - ball.r - .5 : ry + rh + ball.r + .5; return true; }
+  if (d2 === 0){ sh.vy = -sh.vy; sh.y = sh.vy < 0 ? ry - ball.r - .5 : ry + rh + ball.r + .5; normalizeShot(sh); return true; }
   const d = Math.sqrt(d2), nx = dx/d, ny = dy/d;
-  ball.x = cx + nx*(ball.r+.5); ball.y = cy + ny*(ball.r+.5);
-  const dot = ball.vx*nx + ball.vy*ny;
-  if (dot < 0){ ball.vx -= 2*dot*nx; ball.vy -= 2*dot*ny; }
-  normalizeBall();
+  sh.x = cx + nx*(ball.r + .5); sh.y = cy + ny*(ball.r + .5);
+  reflect(sh, nx, ny);
   return true;
 }
-function hitRect(rx, ry, rw, rh){
-  const cx = clamp(ball.x, rx, rx+rw), cy = clamp(ball.y, ry, ry+rh);
-  const dx = ball.x - cx, dy = ball.y - cy;
-  return dx*dx + dy*dy <= ball.r*ball.r;
+function hitObstacle(sh, o){
+  const ox = o.fx*W, oy = o.fy*H, R = o.k*FS*o.grow;
+  let px, py;
+  if (o.sides === 0){
+    const d = Math.hypot(sh.x - ox, sh.y - oy);
+    if (d >= R + ball.r || d === 0) return false;
+    px = ox + (sh.x - ox)/d*R; py = oy + (sh.y - oy)/d*R;
+  } else {
+    const v = obstacleVerts(o); let best = Infinity;
+    for (let i = 0; i < v.length; i++){
+      const a = v[i], b = v[(i+1) % v.length], ex = b[0]-a[0], ey = b[1]-a[1];
+      const tt = clamp(((sh.x-a[0])*ex + (sh.y-a[1])*ey)/(ex*ex + ey*ey), 0, 1);
+      const qx = a[0] + ex*tt, qy = a[1] + ey*tt, d2 = (sh.x-qx)**2 + (sh.y-qy)**2;
+      if (d2 < best){ best = d2; px = qx; py = qy; }
+    }
+    if (best >= ball.r*ball.r || best === 0) return false;
+  }
+  const d = Math.hypot(sh.x - px, sh.y - py), nx = (sh.x - px)/d, ny = (sh.y - py)/d;
+  sh.x = px + nx*(ball.r + .5); sh.y = py + ny*(ball.r + .5);
+  reflect(sh, nx, ny);
+  return true;
 }
 function updateBall(dt){
   if (reload > 0) reload -= dt;
   if (ball.stuck){ ball.x = paddle.x; ball.y = paddle.y - ball.r - 1; return; }
-  ball.trail.push({x:ball.x, y:ball.y}); if (ball.trail.length > 7) ball.trail.shift();
-  const steps = Math.max(1, Math.ceil(SPEED*dt / (ball.r*0.5))), sdt = dt/steps;
-  for (let i=0;i<steps;i++){
-    ball.x += ball.vx*sdt; ball.y += ball.vy*sdt;
-    if (ball.x < ball.r){ ball.x = ball.r; ball.vx = Math.abs(ball.vx); sfx('wall'); }
-    if (ball.x > W - ball.r){ ball.x = W - ball.r; ball.vx = -Math.abs(ball.vx); sfx('wall'); }
-    if (ball.y < ball.r){ ball.y = ball.r; ball.vy = Math.abs(ball.vy); sfx('wall'); }
-    if (ball.vy > 0 && ball.y > paddle.y){ pop(0.15); return; }
-    for (const ic of ice){ if (hitRect(ic.x, ic.y, ic.w, ic.h)){ ic.flash = .25; sfx('ice'); pop(0.3); return; } }
-    const s = current;
-    if (s && s.state === 'falling'){
-      for (const b of s.blocks){
-        if (!b.ghost && hitRect(b.rx, s.y + b.ry, b.w, b.h)){
-          if (b.t < 0){ b.shake = .35; sfx('tock'); streak = 0; b.hits = (b.hits || 0) + 1; if (s.rows > 1 && b.hits >= 2){ b.ghost = true; burst(ball.x, ball.y, [C.mauve, C.cream], 10); } pop(0.9); }
-          else { openChallenge(s, b.t); stickBall(); }
-          return;
+  const born = []; let lastDelay = 0;
+  for (const sh of shots){
+    sh.t += dt;
+    sh.trail.push({x:sh.x, y:sh.y}); if (sh.trail.length > 7) sh.trail.shift();
+    if (sh.t > 7) pop(sh, .15);
+    const steps = Math.max(1, Math.ceil(SPEED*dt / (ball.r*0.5))), sdt = dt/steps;
+    for (let i = 0; i < steps && !sh.dead; i++){
+      sh.x += sh.vx*sdt; sh.y += sh.vy*sdt;
+      if (sh.x < ball.r){ sh.x = ball.r; sh.vx = Math.abs(sh.vx); sfx('wall'); }
+      if (sh.x > W - ball.r){ sh.x = W - ball.r; sh.vx = -Math.abs(sh.vx); sfx('wall'); }
+      if (sh.y < ball.r){ sh.y = ball.r; sh.vy = Math.abs(sh.vy); sfx('wall'); }
+      if (sh.vy > 0 && sh.y > paddle.y){ pop(sh, .15); break; }
+      for (const o of obstacles){ if (hitObstacle(sh, o)){ o.flash = .25; sfx('bump'); break; } }
+      if (gem && Math.hypot(sh.x - gem.x, sh.y - gemY()) < ball.r + FS*0.8){
+        const a = Math.atan2(sh.vx, -sh.vy);
+        born.push(newShot(a - .4, sh.x, sh.y), newShot(a + .4, sh.x, sh.y));
+        born.forEach(normalizeShot);
+        burst(gem.x, gemY(), [C.lime, C.sky, C.cream], 26);
+        floaters.push({ x: gem.x, y: gemY(), text: '×3', life: 1.2, color: C.lime });
+        multi += 3; gem = null; sfx('good');
+      }
+      for (const ic of ice){ if (bounceRect(sh, ic.x, ic.y, ic.w, ic.h)){ ic.flash = .25; sfx('ice'); break; } }
+      if (sh.dead) break;
+      const s = current;
+      if (s && s.state === 'falling'){
+        for (const b of s.blocks){
+          if (!b.ghost && hitRect(sh, b.rx, s.y + b.ry, b.w, b.h)){
+            if (b.t < 0){ b.shake = .35; sfx('tock'); b.hits = (b.hits || 0) + 1; if (s.rows > 1 && b.hits >= 2){ b.ghost = true; burst(sh.x, sh.y, [C.mauve, C.cream], 10); } pop(sh, .9); }
+            else { openChallenge(s, b.t); stickBall(); return; }
+            break;
+          }
         }
       }
     }
+    if (sh.dead) lastDelay = Math.max(lastDelay, sh.delay);
   }
+  shots = shots.filter(sh => !sh.dead).concat(born);
+  if (!shots.length) stickBall(lastDelay);
 }
 function update(dt){
   if (keys.left) aim = Math.max(-AIM_MAX, aim - 1.6*dt);
   if (keys.right) aim = Math.min(AIM_MAX, aim + 1.6*dt);
+  if (gem){ gem.x += gem.vx*dt; gem.t += dt; if (gem.x < -FS*2 || gem.x > W + FS*2) gem = null; }
 
   if (!current){
     spawnTimer -= dt;
@@ -705,6 +845,16 @@ function draw(){
   ctx.drawImage(bg, 0, 0, W, H);
   ctx.font = font(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
 
+  for (const o of obstacles){
+    const ox = o.fx*W, oy = o.fy*H, R = o.k*FS*o.grow;
+    ctx.beginPath();
+    if (o.sides === 0) ctx.arc(ox, oy, R, 0, Math.PI*2);
+    else obstacleVerts(o).forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]));
+    ctx.closePath();
+    ctx.fillStyle = o.flash > 0 ? C.salmon : C.mauve; ctx.fill();
+    ctx.lineWidth = 3; ctx.strokeStyle = C.grape3; ctx.stroke();
+  }
+
   if (current){
     const s = current;
     ctx.save(); ctx.globalAlpha = clamp(s.alpha, 0, 1);
@@ -729,14 +879,34 @@ function draw(){
     if (i.flash > 0){ ctx.globalAlpha = clamp(i.flash*2, 0, .8); ctx.fillStyle = '#fff'; rr(i.x, i.y, i.w, i.h, RAD); ctx.fill(); }
     ctx.restore();
   }
+  if (gem){
+    const gx = gem.x, gy = gemY(), R = FS*0.8, a = gem.t*2;
+    ctx.save(); ctx.globalAlpha = .35 + .15*Math.sin(gem.t*6); ctx.fillStyle = C.lime;
+    ctx.beginPath(); ctx.arc(gx, gy, R*1.5, 0, Math.PI*2); ctx.fill(); ctx.restore();
+    ctx.beginPath();
+    for (let i = 0; i < 4; i++){ const ang = a + i*Math.PI/2, rr2 = i % 2 ? R*0.7 : R; const px = gx + rr2*Math.cos(ang), py = gy + rr2*Math.sin(ang); i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+    ctx.closePath(); ctx.fillStyle = C.lime; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = C.green; ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.beginPath(); ctx.arc(gx - R*0.2, gy - R*0.2, R*0.18, 0, Math.PI*2); ctx.fill();
+  }
   // paddle
   ctx.fillStyle = C.coralDark; rr(paddle.x - paddle.w/2, paddle.y + 3, paddle.w, paddle.h, paddle.h/2); ctx.fill();
   ctx.fillStyle = C.coral; rr(paddle.x - paddle.w/2, paddle.y, paddle.w, paddle.h, paddle.h/2); ctx.fill();
   ctx.fillStyle = 'rgba(255,255,255,.35)'; rr(paddle.x - paddle.w/2 + paddle.h/2, paddle.y + 2, paddle.w - paddle.h, paddle.h*.3, 3); ctx.fill();
   // ball
   if (state !== 'menu'){
-    ball.trail.forEach((p, k) => { ctx.globalAlpha = (k+1)/ball.trail.length * .25; ctx.fillStyle = C.salmon; ctx.beginPath(); ctx.arc(p.x, p.y, ball.r*(k+1)/ball.trail.length, 0, Math.PI*2); ctx.fill(); });
-    ctx.globalAlpha = 1; ctx.fillStyle = (ball.stuck && reload > 0) ? C.mauve : C.cream; ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2); ctx.fill();
+    for (const sh of shots){
+      sh.trail.forEach((p, k) => { ctx.globalAlpha = (k+1)/sh.trail.length * .25; ctx.fillStyle = C.salmon; ctx.beginPath(); ctx.arc(p.x, p.y, ball.r*(k+1)/sh.trail.length, 0, Math.PI*2); ctx.fill(); });
+      ctx.globalAlpha = 1; ctx.fillStyle = C.cream; ctx.beginPath(); ctx.arc(sh.x, sh.y, ball.r, 0, Math.PI*2); ctx.fill();
+    }
+    if (ball.stuck){
+      ctx.fillStyle = reload > 0 ? C.mauve : (multi > 0 ? C.lime : C.cream);
+      ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2); ctx.fill();
+    }
+    if (multi > 0){
+      ctx.font = `800 ${FS*0.8}px "Baloo 2",sans-serif`; ctx.fillStyle = C.lime; ctx.textAlign = 'left';
+      ctx.fillText(`×3 balls: ${multi}`, paddle.x + paddle.w/2 + FS*0.5, paddle.y + paddle.h/2);
+      ctx.textAlign = 'center';
+    }
   }
   // particles + floaters
   particles.forEach(p => { ctx.globalAlpha = clamp(p.life/p.max*1.6, 0, 1); ctx.fillStyle = p.color; ctx.fillRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size); });
@@ -817,7 +987,7 @@ function refreshMenu(){
   $('bestLine').textContent = `Best score: ${P.best||0}`;
 }
 document.querySelectorAll('#modeSeg button').forEach(b => b.addEventListener('click', () => { P.mode = b.dataset.mode; saveP(); refreshMenu(); }));
-function toMenu(){ state = 'menu'; current = null; ice = []; particles = []; floaters = []; refreshMenu(); show('start'); updateHUD(); }
+function toMenu(){ state = 'menu'; current = null; ice = []; obstacles = []; gem = null; particles = []; floaters = []; refreshMenu(); show('start'); updateHUD(); }
 
 /* ---------- boot ---------- */
 new ResizeObserver(resize).observe(stage);
