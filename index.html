@@ -114,7 +114,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sky-edge);outli
         <ol class="rules">
           <li>Find the mistake in the falling sentence.</li>
           <li>Shoot the wrong word. If you hit a right word, you wait a second before the next shot.</li>
-          <li>Fix it. A wrong fix turns the word into ice ❄️ and it stays in your way.</li>
+          <li>Fix it. If your fix is wrong, the correct word freezes into ice ❄️ and stays in your way.</li>
         </ol>
         <div class="setting">Answers
           <div class="seg" id="modeSeg">
@@ -442,6 +442,7 @@ function layout(s){
   if (row.length) rows.push({row,rowW});
   rows.forEach((r,ri) => { let x = (W - r.rowW)/2; r.row.forEach(b => { b.rx = x; b.ry = ri*(BH+GAP); x += b.w + GAP; }); });
   s.h = rows.length*(BH+GAP) - GAP;
+  s.rows = rows.length;
 }
 function makeBlocks(item, idx=-1, repl=''){
   return groups(item, idx, repl).map(g => ({ text: g.text + g.suffix, t: g.t, fixed: g.special, shake:0 }));
@@ -574,11 +575,11 @@ function resolveRight(){
 }
 function resolveWrong(){
   if (!ch) return;
-  const { s, idx } = ch; ch = null;
-  s.blocks.filter(b => b.t === idx).forEach(b => {
-    ice.push({ x:b.rx, y:s.y + b.ry, w:b.w, h:b.h, text:b.text, flash:.5, seed:Math.random()*1000 });
-    burst(b.rx + b.w/2, s.y + b.ry + b.h/2, [C.sky, '#fff'], 16);
-  });
+  const { s, idx, t } = ch; ch = null;
+  const tb = s.blocks.filter(b => b.t === idx);
+  tb.forEach(b => burst(b.rx + b.w/2, s.y + b.ry + b.h/2, [C.sky, '#fff'], 16));
+  const first = tb[0], text = t.answers[0], w = blockWidth(text);
+  ice.push({ x: clamp(first.rx + first.w/2 - w/2, 0, W - w), y: s.y + first.ry, w, h: BH, text, flash:.5, seed:Math.random()*1000 });
   s.blocks = s.blocks.filter(b => b.t !== idx);
   s.state = 'frozen'; rs.frozen++; done++;
   recordFail(s.item, idx); sfx('ice');
@@ -645,12 +646,13 @@ function updateBall(dt){
     if (ball.x < ball.r){ ball.x = ball.r; ball.vx = Math.abs(ball.vx); sfx('wall'); }
     if (ball.x > W - ball.r){ ball.x = W - ball.r; ball.vx = -Math.abs(ball.vx); sfx('wall'); }
     if (ball.y < ball.r){ ball.y = ball.r; ball.vy = Math.abs(ball.vy); sfx('wall'); }
-    if (ball.vy > 0 && ball.y > paddle.y){ pop(0.15); return; }    for (const ic of ice){ if (hitRect(ic.x, ic.y, ic.w, ic.h)){ ic.flash = .25; sfx('ice'); pop(0.3); return; } }
+    if (ball.vy > 0 && ball.y > paddle.y){ pop(0.15); return; }
+    for (const ic of ice){ if (hitRect(ic.x, ic.y, ic.w, ic.h)){ ic.flash = .25; sfx('ice'); pop(0.3); return; } }
     const s = current;
     if (s && s.state === 'falling'){
       for (const b of s.blocks){
-        if (hitRect(b.rx, s.y + b.ry, b.w, b.h)){
-          if (b.t < 0){ b.shake = .35; sfx('tock'); streak = 0; pop(0.9); }
+        if (!b.ghost && hitRect(b.rx, s.y + b.ry, b.w, b.h)){
+          if (b.t < 0){ b.shake = .35; sfx('tock'); streak = 0; b.hits = (b.hits || 0) + 1; if (s.rows > 1 && b.hits >= 2){ b.ghost = true; burst(ball.x, ball.y, [C.mauve, C.cream], 10); } pop(0.9); }
           else { openChallenge(s, b.t); stickBall(); }
           return;
         }
@@ -703,6 +705,7 @@ function draw(){
     const s = current;
     ctx.save(); ctx.globalAlpha = clamp(s.alpha, 0, 1);
     for (const b of s.blocks){
+      ctx.globalAlpha = clamp(s.alpha, 0, 1) * (b.ghost ? 0.22 : 1);
       const sx = b.shake > 0 ? Math.sin(b.shake*70) * 5 * (b.shake/.35) : 0;
       if (b.fixed) drawBlock(b.rx + sx, s.y + b.ry, b.w, b.h, C.lime, C.green, b.text, C.ink);
       else drawBlock(b.rx + sx, s.y + b.ry, b.w, b.h, C.cream, C.mauve, b.text, C.ink);
@@ -744,7 +747,8 @@ function draw(){
       x += vx*14; y += vy*14;
       if (x < ball.r){ x = ball.r; vx = -vx; }
       if (x > W - ball.r){ x = W - ball.r; vx = -vx; }
-      if (y < ball.r){ y = ball.r; vy = -vy; }      ctx.beginPath(); ctx.arc(x, y, 1.5 + ball.r*0.35*(1 - d/len), 0, Math.PI*2); ctx.fill();
+      if (y < ball.r){ y = ball.r; vy = -vy; }
+      ctx.beginPath(); ctx.arc(x, y, 1.5 + ball.r*0.35*(1 - d/len), 0, Math.PI*2); ctx.fill();
     }
   }
 }
